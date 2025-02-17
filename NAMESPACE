@@ -1,0 +1,8 @@
+export(n2dr)
+export(upload_txt)
+export(upload_xl)
+
+importFrom("graphics", "arrows", "legend", "lines", "par", "points")
+importFrom("stats", "median", "nlminb", "sd", "smooth.spline")
+importFrom("utils", "read.table")
+importFrom("readxl", "excel_sheets", "read_excel")

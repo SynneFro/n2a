@@ -1,0 +1,30 @@
+#' upload txt data
+#'
+#' @description Imports and saves raw absorbance data from TXT files (96-well plate layout).
+#' @return Saves datasets in the global environment.
+#' @examples
+#' #upload_txt()
+
+upload_txt <- function() {
+  cat("Please select the TXT file.\n")
+  filename <- file.choose()
+  cat("Importing data from:", filename, "\n")
+  
+  datasets <- unlist(strsplit(paste(readLines(filename), collapse = "\n"), "\n\n"))
+  data_list <- lapply(seq_along(datasets), function(i) {
+    df <- tryCatch({
+      temp_df <- read.table(text = datasets[i], header = FALSE, stringsAsFactors = FALSE, sep = "")
+      temp_df[] <- lapply(temp_df, function(x) as.numeric(gsub(",", ".", x)))
+      return(temp_df)
+    }, error = function(e) {
+      message("Error reading dataset:", i)
+      return(NULL)
+    })
+    return(df)
+  })
+  
+  names(data_list) <- paste0("dataset_", seq_along(datasets))
+  assign(tools::file_path_sans_ext(basename(filename)), data_list, envir = .GlobalEnv)
+  cat("Data imported and stored.\n")
+}
+

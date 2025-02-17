@@ -1,0 +1,16 @@
+Package: n2a
+Type: Package
+Title: Import and Dose-Response Analysis for N2a Assay Data
+Version: 0.1.0
+Author: Synne Thorbjørnsen Frøstrup
+Maintainer: Synne Thorbjørnsen Frøstrup <synne.frostrup@bfr.bund.de>
+Description: R package for streamlined, standardized analysis of data from the Neuro-2a (N2a) cell-based bioassay. Includes functions for importing raw data from both `.txt` and `.xlsx` files and performing dose-response analysis using the 4PL model.
+License: GPL-2
+Imports:
+  readxl,
+  numDeriv,
+  utils,
+  graphics,
+  stats
+RoxygenNote: 7.3.2
+Encoding: UTF-8
