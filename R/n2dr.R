@@ -150,9 +150,6 @@ n2dr <- function(datalist, stock, dose, tissue = "liquid",
       yval <- params_mean[1] + (params_mean[2] - params_mean[1]) / (1 + (xval / params_mean[3])^(-params_mean[4]))
       lines(xval, yval, lwd = 3) 
       
-      minov_spline <- smooth.spline(conc, norm_min$mean)
-      lines(minov_spline$x, minov_spline$y, col = "gray", lwd = 2, lty = 2)
-      
       points(conc, norm_plus$mean, pch = 21, col = "black", bg = "white", cex = 2)
       points(conc, norm_min$mean, pch = 16, bg = "black", cex = 2)
       
@@ -208,5 +205,6 @@ n2dr <- function(datalist, stock, dose, tissue = "liquid",
     }
   }) 
 }
+
 
 
