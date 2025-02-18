@@ -13,17 +13,36 @@
 upload_txt <- function() {
   cat("Please select the TXT file.\n")
   filename <- file.choose()
-  cat("Importing data from:", filename, "\n")
   
-  datasets <- unlist(strsplit(paste(readLines(filename), collapse = "\n"), "\n\n"))
+  # Check file extension
+  if (tolower(tools::file_ext(filename)) != "txt") {
+    stop("Unvalid filetype, please select .txt-based file. Import aborted.")
+  }
+  
+  cat("Importing data from:", filename, "\n")
+  raw_text <- suppressWarnings(readLines(filename, warn = FALSE))  # Suppress warnings from readLines()
+  
+  datasets <- unlist(strsplit(paste(raw_text, collapse = "\n"), "\n\n"))
+  
   data_list <- lapply(seq_along(datasets), function(i) {
     df <- tryCatch({
-      temp_df <- read.table(text = datasets[i], header = FALSE, stringsAsFactors = FALSE, sep = "")
-      temp_df[] <- lapply(temp_df, function(x) as.numeric(gsub(",", ".", x)))
+      temp_df <- suppressWarnings(read.table(text = datasets[i], header = FALSE, stringsAsFactors = FALSE, sep = ""))  
+      
+      temp_df[] <- lapply(temp_df, function(x) {
+        x <- gsub(",", ".", x)  
+        if (any(is.na(suppressWarnings(as.numeric(x))))) {  
+          stop("Non-numeric character(s) detected. Import aborted.")
+        }
+        return(as.numeric(x))
+      })
+      
+      if (nrow(temp_df) != 8 || ncol(temp_df) != 12) {
+        stop("Datasets outside expected dimensions (8x12), check if datasets are separated by double line breaks. Import aborted.")
+      }
+      
       return(temp_df)
     }, error = function(e) {
-      message("Error reading dataset:", i)
-      return(NULL)
+      stop(e$message)  
     })
     return(df)
   })
@@ -32,4 +51,5 @@ upload_txt <- function() {
   cat("Data imported and stored.\n")
   return(data_list)
 }
+
 
