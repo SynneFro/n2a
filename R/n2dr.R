@@ -139,23 +139,32 @@ n2dr <- function(datalist, stock, dose, tissue = "liquid",
            ylim = c(y_min - y_padding, y_max + 1.2 * y_padding),
            main = main_title, cex.lab = 1.5, cex.main = 1.5, las = 1)
       
+      if (any(norm_min$std > 0, na.rm = TRUE)) {
+        arrows(conc, norm_min$mean - norm_min$std, conc, norm_min$mean + norm_min$std, 
+               length = 0.1, angle = 90, code = 3, col = "gray67")
+      }
       if (any(norm_plus$std > 0, na.rm = TRUE)) {
         arrows(conc, norm_plus$mean - norm_plus$std, conc, norm_plus$mean + norm_plus$std, length = 0.1, angle = 90, code = 3)
       }
-      if (any(norm_min$std > 0, na.rm = TRUE)) {
-        arrows(conc, norm_min$mean - norm_min$std, conc, norm_min$mean + norm_min$std, length = 0.1, angle = 90, code = 3)
-      }
       
-      xval <- seq(min(conc), max(conc), length.out = 1000)
+            xval <- seq(min(conc), max(conc), length.out = 1000)
       yval <- params_mean[1] + (params_mean[2] - params_mean[1]) / (1 + (xval / params_mean[3])^(-params_mean[4]))
       lines(xval, yval, lwd = 3) 
       
-      points(conc, norm_plus$mean, pch = 21, col = "black", bg = "white", cex = 2)
-      points(conc, norm_min$mean, pch = 16, bg = "black", cex = 2)
+      points(conc, norm_min$mean, pch = 16, col = "gray67", cex = 1.3)
+      points(conc, norm_plus$mean, pch = 21, col = "black", bg = "white", cex = 1.6)
       
       legend_y <- max(norm_min$mean, na.rm = TRUE) + 1.5 * y_padding 
-      legend("topright", legend = c("-OV", "+OV"), pch = c(16, 1), 
-             bty = "n", cex = 1.2, xpd = TRUE, y.intersp = 0.8, text.col = "black")
+      legend("topright", 
+             legend = c("-OV", "+OV"), 
+             pch = c(16, 21),  # Point type: filled circle for -OV, open circle for +OV
+             col = c("gray67", "black"),  # Set color of points
+             pt.bg = c(NA, "white"),  # Set background for +OV
+             bty = "n", 
+             cex = 1.2, 
+             xpd = TRUE, 
+             y.intersp = 0.8, 
+             text.col = "black")
       
       n2.sum <- data.frame(
         "Parameters" = c("EC50", "max", "min", "Hillslope"),
@@ -205,6 +214,4 @@ n2dr <- function(datalist, stock, dose, tissue = "liquid",
     }
   }) 
 }
-
-
 

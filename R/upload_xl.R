@@ -18,10 +18,9 @@ upload_xl <- function(range = "C46:N53") {
   filename <- file.choose()
   
   if (tolower(tools::file_ext(filename)) != "xls" && tolower(tools::file_ext(filename)) != "xlsx") {
-    stop("Unvalid filetype, please select .xlsx, or .xls-based file. Import aborted.")
+    stop("Invalid filetype, please select .xlsx, or .xls-based file. Import aborted.")
   }
   
-
   if (!grepl("^([A-Z]+[0-9]+:[A-Z]+[0-9]+)$", range)) {
     stop("Invalid range. Use format 'C46:N53'.")
   }
@@ -37,12 +36,10 @@ upload_xl <- function(range = "C46:N53") {
       stop("Error reading sheet:", sheet, ". Import aborted.")
     })
     
-    # Check for empty dataset
     if (nrow(df) == 0 || ncol(df) == 0) {
       stop("Selected range contains no data in sheet: ", sheet, ". Import aborted.")
     }
     
-    # Convert to numeric and check for non-numeric values
     df[] <- lapply(df, function(x) {
       x <- gsub(",", ".", x)  # Convert commas to dots
       numeric_x <- suppressWarnings(as.numeric(x))  # Convert to numeric
@@ -61,13 +58,13 @@ upload_xl <- function(range = "C46:N53") {
     data_list[[sheet]] <- df
   }
   
+  if (!exists("upload_xl_result", envir = parent.frame())) {
+    return(data_list)  
+  }
+  
   cat("Data imported and stored.\n")
   return(data_list)
 }
-
-
-
-
 
 
 
