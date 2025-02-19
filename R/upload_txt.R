@@ -14,13 +14,11 @@ upload_txt <- function() {
   cat("Please select the TXT file.\n")
   filename <- file.choose()
   
-  # Check file extension
   if (tolower(tools::file_ext(filename)) != "txt") {
     stop("Unvalid filetype, please select .txt-based file. Import aborted.")
   }
   
-  cat("Importing data from:", filename, "\n")
-  raw_text <- suppressWarnings(readLines(filename, warn = FALSE))  # Suppress warnings from readLines()
+  raw_text <- suppressWarnings(readLines(filename, warn = FALSE)) 
   
   datasets <- unlist(strsplit(paste(raw_text, collapse = "\n"), "\n\n"))
   
@@ -48,8 +46,8 @@ upload_txt <- function() {
   })
   
   names(data_list) <- paste0("dataset_", seq_along(datasets))
-  cat("Data imported and stored.\n")
   return(data_list)
 }
+
 
 

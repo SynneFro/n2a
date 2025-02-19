@@ -50,7 +50,6 @@ upload_xl <- function(range = "C46:N53") {
       return(numeric_x)
     })
     
-    # Validate dimensions (8x12)
     if (nrow(df) != 8 || ncol(df) != 12) {
       stop("Datasets outside expected dimensions (8x12). Import aborted.")
     }
@@ -62,7 +61,6 @@ upload_xl <- function(range = "C46:N53") {
     return(data_list)  
   }
   
-  cat("Data imported and stored.\n")
   return(data_list)
 }
 
