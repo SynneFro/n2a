@@ -21,7 +21,7 @@ upload_xl <- function(range = "C46:N53") {
     stop("Invalid filetype, please select .xlsx, or .xls-based file. Import aborted.")
   }
   
-  if (!grepl("^([A-Z]+[0-9]+:[A-Z]+[0-9]+)$", range)) {
+   if (!grepl("^([A-Z]+[0-9]+:[A-Z]+[0-9]+)$", range)) {
     stop("Invalid range. Use format 'C46:N53'.")
   }
   
@@ -63,7 +63,6 @@ upload_xl <- function(range = "C46:N53") {
   
   return(data_list)
 }
-
 
 
 

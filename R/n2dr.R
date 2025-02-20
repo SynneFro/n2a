@@ -175,6 +175,7 @@ n2dr <- function(datalist, stock, dose, tissue = "liquid",
       
       
       cat(sprintf("Summary for: \033[1m%s\033[0m\n", main_title))
+      cat(sprintf("Stock: %s, Dose: %s\n", stock_value, dose_value))
       print_summary <- function(n2.sum, indentation) {
         cat(sprintf("%s%-12s %-6s %-6s\n", indentation, "[Parameters]", "[Mean]", " SE"))
         cat(sprintf("%s%s\n", indentation, strrep("-", 9 + 9 + 9)))
@@ -214,5 +215,3 @@ n2dr <- function(datalist, stock, dose, tissue = "liquid",
     }
   }) 
 }
-
-
