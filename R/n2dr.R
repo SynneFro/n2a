@@ -157,9 +157,9 @@ n2dr <- function(datalist, stock, dose, tissue = "liquid",
       legend_y <- max(norm_min$mean, na.rm = TRUE) + 1.5 * y_padding 
       legend("topright", 
              legend = c("-OV", "+OV"), 
-             pch = c(16, 21),  # Point type: filled circle for -OV, open circle for +OV
-             col = c("gray67", "black"),  # Set color of points
-             pt.bg = c(NA, "white"),  # Set background for +OV
+             pch = c(16, 21),  
+             col = c("gray67", "black"), 
+             pt.bg = c(NA, "white"),  
              bty = "n", 
              cex = 1.2, 
              xpd = TRUE, 
@@ -175,7 +175,7 @@ n2dr <- function(datalist, stock, dose, tissue = "liquid",
       
       
       cat(sprintf("Summary for: \033[1m%s\033[0m\n", main_title))
-      cat(sprintf("Stock: %s, Dose: %s\n", stock_value, dose_value))
+      cat(sprintf("stock: %s, dose: %s\n", stock_value, dose_value))
       print_summary <- function(n2.sum, indentation) {
         cat(sprintf("%s%-12s %-6s %-6s\n", indentation, "[Parameters]", "[Mean]", " SE"))
         cat(sprintf("%s%s\n", indentation, strrep("-", 9 + 9 + 9)))
@@ -215,3 +215,5 @@ n2dr <- function(datalist, stock, dose, tissue = "liquid",
     }
   }) 
 }
+
+

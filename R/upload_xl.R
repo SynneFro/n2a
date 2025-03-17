@@ -41,12 +41,13 @@ upload_xl <- function(range = "C46:N53") {
     }
     
     df[] <- lapply(df, function(x) {
-      x <- gsub(",", ".", x)  # Convert commas to dots
-      numeric_x <- suppressWarnings(as.numeric(x))  # Convert to numeric
+      x <- gsub(",", ".", x)  
+      numeric_x <- suppressWarnings(as.numeric(x))  
       
-      if (any(is.na(numeric_x))) {
-        stop("Non-numeric character detected, import aborted.")
+      if (all(is.na(numeric_x))) {  
+        stop("All values in a column are non-numeric, import aborted.")
       }
+      
       return(numeric_x)
     })
     
