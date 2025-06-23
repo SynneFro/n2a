@@ -194,14 +194,17 @@ n2dr <- function(datalist, stock, dose, tissue = "liquid",
         cat(sprintf("OV%%: %.2f -> \033[31mOutside optimal range (60-80%%)\033[0m\n", round(ov, 2)))
       }
       
-      if (any(norm_min$std > 0.2 * mean(norm_min$mean, na.rm = TRUE)) || any(norm_plus$std > 0.2 * mean(norm_plus$mean, na.rm = TRUE))) {
-        if (any(norm_min$std > 0.2 * mean(norm_min$mean, na.rm = TRUE))) {
-          high_sd_rows <- which(norm_min$std > 0.2 * mean(norm_min$mean, na.rm = TRUE))
-          cat(sprintf("\033[31mSD above 20%% | Sample %s (-OV)\033[0m\n", paste(high_sd_rows, collapse = ", ")))
+      cv_min <- norm_min$std / norm_min$mean * 100
+      cv_plus <- norm_plus$std / norm_plus$mean * 100
+      
+      if (any(cv_min > 20, na.rm = TRUE) || any(cv_plus > 20, na.rm = TRUE)) {
+        if (any(cv_min > 20, na.rm = TRUE)) {
+          high_cv_rows <- which(cv_min > 20)
+          cat(sprintf("\033[31mCV above 20%% | Sample %s (-OV)\033[0m\n", paste(high_cv_rows, collapse = ", ")))
         }
-        if (any(norm_plus$std > 0.2 * mean(norm_plus$mean, na.rm = TRUE))) {
-          high_sd_rows <- which(norm_plus$std > 0.2 * mean(norm_plus$mean, na.rm = TRUE))
-          cat(sprintf("\033[31mSD above 20%% | Sample %s (+OV)\033[0m\n", paste(high_sd_rows, collapse = ", ")))
+        if (any(cv_plus > 20, na.rm = TRUE)) {
+          high_cv_rows <- which(cv_plus > 20)
+          cat(sprintf("\033[31mCV above 20%% | Sample %s (+OV)\033[0m\n", paste(high_cv_rows, collapse = ", ")))
         }
       }
       for (i in seq_along(norm_min$mean)) {
