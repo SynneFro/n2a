@@ -174,7 +174,7 @@ n2dr <- function(datalist, stock, dose, tissue = "liquid",
       )
       
       
-      cat(sprintf("Summary for: \033[1m%s\033[0m\n", main_title))
+      cat(sprintf("Summary for: %s\n", main_title))
       cat(sprintf("stock: %s, dose: %s\n", stock_value, dose_value))
       print_summary <- function(n2.sum, indentation) {
         cat(sprintf("%s%-12s %-6s %-6s\n", indentation, "[Parameters]", "[Mean]", " SE"))
@@ -191,7 +191,7 @@ n2dr <- function(datalist, stock, dose, tissue = "liquid",
       if (ov >= 60 && ov <= 80) {
         cat(sprintf("OV%%: %.2f -> Within optimal range (60-80%%)\n", round(ov, 2)))
       } else {
-        cat(sprintf("OV%%: %.2f -> \033[31mOutside optimal range (60-80%%)\033[0m\n", round(ov, 2)))
+        cat(sprintf("* OV%%: %.2f -> Outside optimal range (60-80%%)\n", round(ov, 2)))
       }
       
       cv_min <- norm_min$std / norm_min$mean * 100
@@ -200,17 +200,17 @@ n2dr <- function(datalist, stock, dose, tissue = "liquid",
       if (any(cv_min > 20, na.rm = TRUE) || any(cv_plus > 20, na.rm = TRUE)) {
         if (any(cv_min > 20, na.rm = TRUE)) {
           high_cv_rows <- which(cv_min > 20)
-          cat(sprintf("\033[31mCV above 20%% | Sample %s (-OV)\033[0m\n", paste(high_cv_rows, collapse = ", ")))
+          cat(sprintf("* CV above 20%% | Sample %s (-OV)\n", paste(high_cv_rows, collapse = ", ")))
         }
         if (any(cv_plus > 20, na.rm = TRUE)) {
           high_cv_rows <- which(cv_plus > 20)
-          cat(sprintf("\033[31mCV above 20%% | Sample %s (+OV)\033[0m\n", paste(high_cv_rows, collapse = ", ")))
+          cat(sprintf("* CV above 20%% | Sample %s (+OV)\n", paste(high_cv_rows, collapse = ", ")))
         }
       }
       for (i in seq_along(norm_min$mean)) {
         other_means <- norm_min$mean[-i]
         if (all(norm_min$mean[i] < 0.3 * other_means)) {
-          cat("\033[31mMatrix effect detected\033[0m\n")
+          cat("* Matrix effect detected\n")
           
         }
       }
