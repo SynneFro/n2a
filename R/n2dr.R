@@ -50,9 +50,9 @@ n2dr <- function(datalist, stock, dose, tissue = "liquid",
     
     calc_conc <- function(tissue, dose_value, stock_value) {
       if (tissue == "dry") {
-        return(((dose_value * stock_value) / 200) * 10 * (0.5^(0:(8-1))))
+        return(((dose_value * stock_value) / 200) * 10 * (0.5^(0:7)))
       } else if (tissue == "liquid") {
-        return((((dose_value * stock_value) / 200) * 10 * (0.5^(0:(8-1))) / 230) * 1000)
+        return((((dose_value * stock_value) / 200) * 10 * (0.5^(0:7)) / 230) * 1000)
       } else {
         stop("tissue must be defined as either 'dry' or 'liquid'")
       }
@@ -134,10 +134,17 @@ n2dr <- function(datalist, stock, dose, tissue = "liquid",
       
       par(bty = "l", mar = c(5, 5, 4, 4) + 0.1, lwd = 2, tck = -0.02, cex.axis = 1.2)
       
-      plot(conc, norm_plus$mean, log = "x", type = "n", 
+      plot(conc, norm_plus$mean, log = "x", type = "n",
            xlab = x_title, ylab = y_title,
            ylim = c(y_min - y_padding, y_max + 1.2 * y_padding),
            main = main_title, cex.lab = 1.5, cex.main = 1.5, las = 1)
+      
+      axis(1)
+      maj_ticks <- axTicks(1)
+    
+      minor_ticks <- unlist(sapply(maj_ticks, function(x) x * (2:9)))
+      minor_ticks <- minor_ticks[minor_ticks > min(conc) & minor_ticks < max(conc)]
+      axis(1, at = minor_ticks, labels = FALSE, tcl = -0.3)
       
       if (any(norm_min$std > 0, na.rm = TRUE)) {
         arrows(conc, norm_min$mean - norm_min$std, conc, norm_min$mean + norm_min$std, 
