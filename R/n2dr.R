@@ -6,6 +6,7 @@
 #' @param stock Numeric. Stock concentration of sample or standard.
 #' @param dose Numeric. Sample aliquot volume of sample or standard.
 #' @param tissue Character. Tissue concentration conversion, either "dry" (ng/muL) or "liquid" (ng/mL) (default is "liquid").
+#' @param well.vol Numeric. Final volume in the well in muL (default is 230).
 #' @param x.axis Character. Title for the x-axis (default is "").
 #' @param y.axis Character. Title for the y-axis (default is "% cell survival").
 #' @param subset Numeric. A subset of datasets to analyze (e.g., `subset = 1:3`). Default is `NULL`, which loops through all.
@@ -14,11 +15,13 @@
 #' 
 #' @examples
 #' n2dr(exampledata, stock = 2.5, dose = 20, subset = 1)
+#' n2dr(exampledata, stock = 2.5, dose = 20, well.vol = 200, subset = 1)
 #' 
 #' @export
 
 
-n2dr <- function(datalist, stock, dose, tissue = "liquid", 
+
+n2dr <- function(datalist, stock, dose, tissue = "liquid", well.vol = 230,
                  x.axis = "", y.axis = "", subset = NULL) {
   if (missing(stock) || missing(dose)) {
     stop("Both 'stock' and 'dose' must be provided.")
@@ -48,11 +51,11 @@ n2dr <- function(datalist, stock, dose, tissue = "liquid",
     x.axis.title <- rep(x.axis, length.out = length(datalist))
     y.axis.title <- rep(y.axis, length.out = length(datalist))
     
-    calc_conc <- function(tissue, dose_value, stock_value) {
+    calc_conc <- function(tissue, dose_value, stock_value, well.vol) {
       if (tissue == "dry") {
         return(((dose_value * stock_value) / 200) * 10 * (0.5^(0:7)))
       } else if (tissue == "liquid") {
-        return((((dose_value * stock_value) / 200) * 10 * (0.5^(0:7)) / 230) * 1000)
+        return((((dose_value * stock_value) / 200) * 10 * (0.5^(0:7)) / well.vol) * 1000)
       } else {
         stop("tissue must be defined as either 'dry' or 'liquid'")
       }
@@ -79,7 +82,7 @@ n2dr <- function(datalist, stock, dose, tissue = "liquid",
       y_title <- y.axis.title[i]
       main_title <- names_list[i]
       
-      conc <- calc_conc(tissue, dose_value, stock_value)
+      conc <- calc_conc(tissue, dose_value, stock_value, well.vol)
       control_mean_min <- mean(as.numeric(as.matrix(data[2:4, 2:3])), na.rm = TRUE)
       control_mean_plus <- mean(as.numeric(as.matrix(data[5:7, 2:3])), na.rm = TRUE)
       norm_min <- norm_values(data, 2:4, control_mean_min)
@@ -138,7 +141,7 @@ n2dr <- function(datalist, stock, dose, tissue = "liquid",
            xlab = x_title, ylab = y_title,
            ylim = c(y_min - y_padding, y_max + 1.2 * y_padding),
            main = main_title, cex.lab = 1.5, cex.main = 1.5, las = 1)
-
+      
       
       if (any(norm_min$std > 0, na.rm = TRUE)) {
         arrows(conc, norm_min$mean - norm_min$std, conc, norm_min$mean + norm_min$std, 
@@ -148,7 +151,7 @@ n2dr <- function(datalist, stock, dose, tissue = "liquid",
         arrows(conc, norm_plus$mean - norm_plus$std, conc, norm_plus$mean + norm_plus$std, length = 0.1, angle = 90, code = 3)
       }
       
-            xval <- seq(min(conc), max(conc), length.out = 1000)
+      xval <- seq(min(conc), max(conc), length.out = 1000)
       yval <- params_mean[1] + (params_mean[2] - params_mean[1]) / (1 + (xval / params_mean[3])^(-params_mean[4]))
       lines(xval, yval, lwd = 3) 
       
@@ -176,7 +179,7 @@ n2dr <- function(datalist, stock, dose, tissue = "liquid",
       
       
       cat(sprintf("Summary for: %s\n", main_title))
-      cat(sprintf("stock: %s, dose: %s\n", stock_value, dose_value))
+      cat(sprintf("stock: %s, dose: %s, well.vol: %s \n", stock_value, dose_value, well.vol))
       print_summary <- function(n2.sum, indentation) {
         cat(sprintf("%s%-12s %-6s %-6s\n", indentation, "[Parameters]", "[Mean]", " SE"))
         cat(sprintf("%s%s\n", indentation, strrep("-", 9 + 9 + 9)))
@@ -186,7 +189,7 @@ n2dr <- function(datalist, stock, dose, tissue = "liquid",
         }
       }
       
-    
+      
       print_summary(n2.sum, paste(rep(" ", 10), collapse = ""))
       cat(sprintf("%s%s\n", paste(rep(" ", 10), collapse = ""), strrep("-", 9 + 9 + 9)))
       if (ov >= 60 && ov <= 80) {
@@ -219,5 +222,4 @@ n2dr <- function(datalist, stock, dose, tissue = "liquid",
     }
   }) 
 }
-
 

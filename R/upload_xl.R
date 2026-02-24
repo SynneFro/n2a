@@ -33,7 +33,7 @@ upload_xl <- function(range = "C46:N53") {
     df <- tryCatch({
       suppressMessages(read_excel(filename, sheet = sheet, range = range, col_names = FALSE))
     }, error = function(e) {
-      stop("Error reading sheet:", sheet, ". Import aborted.")
+      stop("Error reading sheet '", sheet, "': ", conditionMessage(e), ". Import aborted.")
     })
     
     if (nrow(df) == 0 || ncol(df) == 0) {
