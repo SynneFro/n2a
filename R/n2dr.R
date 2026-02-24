@@ -20,8 +20,7 @@
 #' @export
 
 
-
-n2dr <- function(datalist, stock, dose, tissue = "liquid", well.vol = 230,
+n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
                  x.axis = "", y.axis = "", subset = NULL) {
   if (missing(stock) || missing(dose)) {
     stop("Both 'stock' and 'dose' must be provided.")
