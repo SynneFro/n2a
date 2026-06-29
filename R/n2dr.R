@@ -96,7 +96,7 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
         start_vals <- estimate_start(conc, norm_plus$mean)
         
         lower_bounds <- c(min = -10, max = -10, EC50 = 0, Hillslope = -5)  
-        upper_bounds <- c(min = 200, max = 200, EC50 = 50, Hillslope = 5)  
+        upper_bounds <- c(min = 200, max = 300, EC50 = 50, Hillslope = 5)  
         
         obj_func <- function(par) {
           if (any(is.nan(par)) || any(is.infinite(par))) {
@@ -134,12 +134,12 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
       y_min <- min(c(norm_plus$mean - norm_plus$std, norm_min$mean - norm_min$std), na.rm = TRUE)
       y_padding <- 0.15 * (y_max - y_min)
       
-      par(bty = "l", mar = c(5, 5, 4, 4) + 0.1, lwd = 2, tck = -0.02, cex.axis = 1.2)
+      par(bty = "l", mar = c(5, 5, 4, 4) + 0.1, lwd = 2, tck = -0.02, cex.axis = 1)
       
       plot(conc, norm_plus$mean, log = "x", type = "n", 
            xlab = x_title, ylab = y_title,
            ylim = c(y_min - y_padding, y_max + 1.2 * y_padding),
-           main = main_title, cex.lab = 1.5, cex.main = 1.5, las = 1)
+           main = main_title, cex.lab = 1, cex.main = 1, las = 1)
       
       
       if (any(norm_min$std > 0, na.rm = TRUE)) {
@@ -154,25 +154,25 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
       yval <- params_mean[1] + (params_mean[2] - params_mean[1]) / (1 + (xval / params_mean[3])^(-params_mean[4]))
       lines(xval, yval, lwd = 3) 
       
-      points(conc, norm_min$mean, pch = 16, col = "gray67", cex = 1.3)
+      points(conc, norm_min$mean, pch = 18, col = "gray67", cex = 1.3)
       points(conc, norm_plus$mean, pch = 21, col = "black", bg = "white", cex = 1.6)
       
       legend_y <- max(norm_min$mean, na.rm = TRUE) + 1.5 * y_padding 
       legend("topright", 
              legend = c("-OV", "+OV"), 
-             pch = c(16, 21),  
+             pch = c(18, 21),  
              col = c("gray67", "black"), 
              pt.bg = c(NA, "white"),  
              bty = "n", 
-             cex = 1.2, 
+             cex = 1, 
              xpd = TRUE, 
              y.intersp = 0.8, 
              text.col = "black")
       
       n2.sum <- data.frame(
         "Parameters" = c("EC50", "max", "min", "Hillslope"),
-        "Mean" = round(c(params_mean[3], params_mean[2], params_mean[1], params_mean[4]), 2),
-        "SE" = round(SE_params, 2),  
+        "Mean" = signif(c(params_mean[3], params_mean[2], params_mean[1], params_mean[4]), 4),
+        "SE" = signif(SE_params, 4),  
         stringsAsFactors = FALSE
       )
       
@@ -183,7 +183,7 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
         cat(sprintf("%s%-12s %-6s %-6s\n", indentation, "[Parameters]", "[Mean]", " SE"))
         cat(sprintf("%s%s\n", indentation, strrep("-", 9 + 9 + 9)))
         for (row in seq_len(nrow(n2.sum))) {
-          cat(sprintf("%s%-12s %-6.2f  %-3.2f\n", indentation,
+          cat(sprintf("%s%-12s %-6.4g  %-3.4g\n", indentation,
                       n2.sum$Parameters[row], n2.sum$Mean[row], n2.sum$SE[row]))
         }
       }
@@ -191,11 +191,8 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
       
       print_summary(n2.sum, paste(rep(" ", 10), collapse = ""))
       cat(sprintf("%s%s\n", paste(rep(" ", 10), collapse = ""), strrep("-", 9 + 9 + 9)))
-      if (ov >= 60 && ov <= 80) {
-        cat(sprintf("OV%%: %.2f -> Within optimal range (60-80%%)\n", round(ov, 2)))
-      } else {
-        cat(sprintf("* OV%%: %.2f -> Outside optimal range (60-80%%)\n", round(ov, 2)))
-      }
+        cat(sprintf("OV%%: %.2f \n", round(ov, 2)))
+
       
       cv_min <- norm_min$std / norm_min$mean * 100
       cv_plus <- norm_plus$std / norm_plus$mean * 100
