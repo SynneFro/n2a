@@ -95,8 +95,8 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
         
         start_vals <- estimate_start(conc, norm_plus$mean)
         
-        lower_bounds <- c(min = 0,   max = 80,  EC50 = min(dose)/10,  Hillslope = -5)
-        upper_bounds <- c(min = 20,  max = 120, EC50 = max(dose)*10,  Hillslope = 5)  
+        lower_bounds <- c(min = -10, max = -10, EC50 = 0, Hillslope = -5)  
+        upper_bounds <- c(min = 200, max = 300, EC50 = 50, Hillslope = 5)  
         
         obj_func <- function(par) {
           if (any(is.nan(par)) || any(is.infinite(par))) {
