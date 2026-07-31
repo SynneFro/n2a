@@ -95,8 +95,11 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
         
         start_vals <- estimate_start(conc, norm_plus$mean)
         
-        lower_bounds <- c(min = -10, max = -10, EC50 = 0, Hillslope = -5)  
-        upper_bounds <- c(min = 200, max = 300, EC50 = 50, Hillslope = 5)  
+        # EC50 bounds are scaled to the actual concentration range so that the
+        # function works for high-concentration data as well. For the original
+        # data range these are effectively the old bounds (0, 50).
+        lower_bounds <- c(min = -10, max = -10, EC50 = min(conc) / 10, Hillslope = -5)
+        upper_bounds <- c(min = 200, max = 300, EC50 = max(conc) * 5, Hillslope = 5)
         
         obj_func <- function(par) {
           if (any(is.nan(par)) || any(is.infinite(par))) {
@@ -119,8 +122,15 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
         }
         
         hessian <- numDeriv::hessian(func = obj_func, x = fit$par)
-        cov_matrix <- solve(hessian)
-        SE <- sqrt(diag(cov_matrix))  
+        
+        # Standard errors for a least-squares objective:
+        # cov = 2 * sigma^2 * H^-1, with sigma^2 = residual sum of squares / (n - p).
+        # The factor 2 * sigma^2 was missing previously, which scaled all SEs down.
+        n_obs  <- length(norm_plus$mean)
+        n_par  <- length(fit$par)
+        sigma2 <- fit$objective / (n_obs - n_par)
+        cov_matrix <- 2 * sigma2 * solve(hessian)
+        SE <- sqrt(diag(cov_matrix))
         
         return(list(fit = fit, SE = SE))
       }
@@ -169,10 +179,13 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
              y.intersp = 0.8, 
              text.col = "black")
       
+      # params_mean is reordered here (EC50, max, min, Hillslope), so SE_params
+      # has to be reordered the same way. Previously it was left in fit order,
+      # which swapped the EC50 and min standard errors.
       n2.sum <- data.frame(
         "Parameters" = c("EC50", "max", "min", "Hillslope"),
         "Mean" = signif(c(params_mean[3], params_mean[2], params_mean[1], params_mean[4]), 4),
-        "SE" = signif(SE_params, 4),  
+        "SE" = signif(SE_params[c(3, 2, 1, 4)], 4),
         stringsAsFactors = FALSE
       )
       
@@ -191,8 +204,8 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
       
       print_summary(n2.sum, paste(rep(" ", 10), collapse = ""))
       cat(sprintf("%s%s\n", paste(rep(" ", 10), collapse = ""), strrep("-", 9 + 9 + 9)))
-        cat(sprintf("OV%%: %.2f \n", round(ov, 2)))
-
+      cat(sprintf("OV%%: %.2f \n", round(ov, 2)))
+      
       
       cv_min <- norm_min$std / norm_min$mean * 100
       cv_plus <- norm_plus$std / norm_plus$mean * 100
@@ -207,9 +220,10 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
           cat(sprintf("* CV above 20%% | Sample %s (+OV)\n", paste(high_cv_rows, collapse = ", ")))
         }
       }
-      for (i in seq_along(norm_min$mean)) {
-        other_means <- norm_min$mean[-i]
-        if (all(norm_min$mean[i] < 0.3 * other_means)) {
+      # loop index renamed from i to j so it does not shadow the outer dataset loop
+      for (j in seq_along(norm_min$mean)) {
+        other_means <- norm_min$mean[-j]
+        if (all(norm_min$mean[j] < 0.3 * other_means)) {
           cat("* Matrix effect detected\n")
           
         }
@@ -218,4 +232,3 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
     }
   }) 
 }
-
