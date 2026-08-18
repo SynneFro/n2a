@@ -95,44 +95,71 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
         
         start_vals <- estimate_start(conc, norm_plus$mean)
         
-        # EC50 bounds are scaled to the actual concentration range so that the
-        # function works for high-concentration data as well. For the original
-        # data range these are effectively the old bounds (0, 50).
-        lower_bounds <- c(min = -10, max = -10, EC50 = min(conc) / 10, Hillslope = -5)
-        upper_bounds <- c(min = 200, max = 300, EC50 = max(conc) * 5, Hillslope = 5)
+        lower_bounds <- c(min = -10, max = -10,
+                          logEC50 = log10(min(conc) / 10), Hillslope = -5)
+        upper_bounds <- c(min = 200, max = 300,
+                          logEC50 = log10(max(conc) * 5), Hillslope = 5)
         
         obj_func <- function(par) {
-          if (any(is.nan(par)) || any(is.infinite(par))) {
-            return(1e10)  
+          if (any(!is.finite(par))) {
+            return(1e10)
           }
           
-          y_pred <- fourpl(conc, par[1], par[2], par[3], par[4])
+          y_pred <- fourpl(conc, par[1], par[2], 10^par[3], par[4])
           
-          if (any(is.nan(y_pred)) || any(is.infinite(y_pred))) {
-            return(1e10) 
+          if (any(!is.finite(y_pred))) {
+            return(1e10)
           }
           
           sum((norm_plus$mean - y_pred)^2)
         }
         
-        fit <- nlminb(start = start_vals, objective = obj_func, lower = lower_bounds, upper = upper_bounds)
+        grid <- expand.grid(
+          logEC50 = seq(lower_bounds[["logEC50"]], upper_bounds[["logEC50"]], length.out = 15),
+          Hillslope = c(-0.5, -1, -2, -3)
+        )
         
-        if (any(is.nan(fit$par)) || any(is.infinite(fit$par))) {
+        fit <- NULL
+        for (k in seq_len(nrow(grid))) {
+          st <- c(min = unname(start_vals[["min"]]),
+                  max = unname(start_vals[["max"]]),
+                  logEC50 = grid$logEC50[k],
+                  Hillslope = grid$Hillslope[k])
+          f <- nlminb(start = st, objective = obj_func,
+                      lower = lower_bounds, upper = upper_bounds)
+          if (is.null(fit) || f$objective < fit$objective) fit <- f
+        }
+        
+        if (!is.finite(fit$objective) || any(!is.finite(fit$par))) {
           stop("Optimization failed due to NaNs or Infs in the parameters.")
         }
         
+        at_bound <- abs(fit$par - lower_bounds) < 1e-6 |
+          abs(fit$par - upper_bounds) < 1e-6
+        
         hessian <- numDeriv::hessian(func = obj_func, x = fit$par)
         
-        # Standard errors for a least-squares objective:
-        # cov = 2 * sigma^2 * H^-1, with sigma^2 = residual sum of squares / (n - p).
-        # The factor 2 * sigma^2 was missing previously, which scaled all SEs down.
         n_obs  <- length(norm_plus$mean)
         n_par  <- length(fit$par)
         sigma2 <- fit$objective / (n_obs - n_par)
-        cov_matrix <- 2 * sigma2 * solve(hessian)
-        SE <- sqrt(diag(cov_matrix))
+        cov_matrix <- tryCatch(2 * sigma2 * solve(hessian), error = function(e) NULL)
         
-        return(list(fit = fit, SE = SE))
+        if (is.null(cov_matrix)) {
+          SE <- rep(NA_real_, n_par)
+        } else {
+          d <- diag(cov_matrix)
+          SE <- ifelse(d > 0, sqrt(d), NA_real_)
+        }
+        SE[at_bound] <- NA_real_
+        
+        par_out <- fit$par
+        par_out[3] <- 10^fit$par[3]
+        SE[3] <- if (is.na(SE[3])) NA_real_ else SE[3] * log(10) * par_out[3]
+        names(par_out)[3] <- "EC50"
+        fit$par <- par_out
+        
+        return(list(fit = fit, SE = SE, at_bound = at_bound,
+                    convergence = fit$convergence, message = fit$message))
       }
       
       fit_mean <- fit_4pl(conc, norm_plus)
@@ -179,9 +206,6 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
              y.intersp = 0.8, 
              text.col = "black")
       
-      # params_mean is reordered here (EC50, max, min, Hillslope), so SE_params
-      # has to be reordered the same way. Previously it was left in fit order,
-      # which swapped the EC50 and min standard errors.
       n2.sum <- data.frame(
         "Parameters" = c("EC50", "max", "min", "Hillslope"),
         "Mean" = signif(c(params_mean[3], params_mean[2], params_mean[1], params_mean[4]), 4),
@@ -206,6 +230,14 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
       cat(sprintf("%s%s\n", paste(rep(" ", 10), collapse = ""), strrep("-", 9 + 9 + 9)))
       cat(sprintf("OV%%: %.2f \n", round(ov, 2)))
       
+      if (!is.null(fit_mean$convergence) && fit_mean$convergence != 0) {
+        cat(sprintf("* fit did not converge: %s\n", fit_mean$message))
+      }
+      if (any(fit_mean$at_bound)) {
+        cat(sprintf("* parameter(s) at bound: %s | SE not reported\n",
+                    paste(names(which(fit_mean$at_bound)), collapse = ", ")))
+      }
+      
       
       cv_min <- norm_min$std / norm_min$mean * 100
       cv_plus <- norm_plus$std / norm_plus$mean * 100
@@ -220,7 +252,6 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
           cat(sprintf("* CV above 20%% | Sample %s (+OV)\n", paste(high_cv_rows, collapse = ", ")))
         }
       }
-      # loop index renamed from i to j so it does not shadow the outer dataset loop
       for (j in seq_along(norm_min$mean)) {
         other_means <- norm_min$mean[-j]
         if (all(norm_min$mean[j] < 0.3 * other_means)) {
