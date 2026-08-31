@@ -10,9 +10,6 @@
 #' upload_xl(range = "C46:N53")
 #' 
 #' @export
-
-
-
 upload_xl <- function(range = "C46:N53") {
   cat("Please select the Excel file.\n")
   filename <- file.choose()
@@ -21,14 +18,16 @@ upload_xl <- function(range = "C46:N53") {
     stop("Invalid filetype, please select .xlsx, or .xls-based file. Import aborted.")
   }
   
-   if (!grepl("^([A-Z]+[0-9]+:[A-Z]+[0-9]+)$", range)) {
+  if (!grepl("^([A-Z]+[0-9]+:[A-Z]+[0-9]+)$", range)) {
     stop("Invalid range. Use format 'C46:N53'.")
   }
   
   data_list <- list()
+  sheets <- excel_sheets(filename)
   
-  for (sheet in excel_sheets(filename)) {
-    cat("Reading sheet:", sheet, "\n")
+  for (i in seq_along(sheets)) {
+    sheet <- sheets[i]
+    cat(i, ". Reading sheet: ", sheet, "\n", sep = "")
     
     df <- tryCatch({
       suppressMessages(read_excel(filename, sheet = sheet, range = range, col_names = FALSE))
@@ -64,8 +63,3 @@ upload_xl <- function(range = "C46:N53") {
   
   return(data_list)
 }
-
-
-
-  
-
