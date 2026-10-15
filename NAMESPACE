@@ -1,6 +1,7 @@
 export(n2dr)
 export(upload_txt)
 export(upload_xl)
+export(n2a_report)
 
 importFrom("graphics", "arrows", "legend", "lines", "par", "points")
 importFrom("stats", "median", "nlminb", "sd", "smooth.spline")
