@@ -25,7 +25,10 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
   if (missing(stock) || missing(dose)) {
     stop("Both 'stock' and 'dose' must be provided.")
   }
-  suppressWarnings({ 
+  
+  results_all <- list()          # >>> ADDED: collector
+  
+  suppressWarnings({
     
     if (length(datalist) == 0 || all(sapply(datalist, function(x) dim(x)[1] == 0))) {
       stop("Empty dataset: No data available for analysis.")
@@ -34,9 +37,9 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
     names_list <- names(datalist)
     
     if (is.null(subset)) {
-      subset <- seq_along(datalist) 
+      subset <- seq_along(datalist)
     } else {
-      subset <- as.integer(subset)  
+      subset <- as.integer(subset)
       if (any(subset < 1 | subset > length(datalist))) {
         stop("Subset indices are out of range for the datalist.")
       }
@@ -46,7 +49,7 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
     names_list <- names_list[subset]
     
     stock <- if (length(stock) == length(datalist)) stock else rep(stock, length.out = length(datalist))
-    dose <- if (length(dose) == length(datalist)) dose else rep(dose, length.out = length(datalist))
+    dose  <- if (length(dose)  == length(datalist)) dose  else rep(dose,  length.out = length(datalist))
     x.axis.title <- rep(x.axis, length.out = length(datalist))
     y.axis.title <- rep(y.axis, length.out = length(datalist))
     
@@ -82,9 +85,9 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
       main_title <- names_list[i]
       
       conc <- calc_conc(tissue, dose_value, stock_value, well.vol)
-      control_mean_min <- mean(as.numeric(as.matrix(data[2:4, 2:3])), na.rm = TRUE)
+      control_mean_min  <- mean(as.numeric(as.matrix(data[2:4, 2:3])), na.rm = TRUE)
       control_mean_plus <- mean(as.numeric(as.matrix(data[5:7, 2:3])), na.rm = TRUE)
-      norm_min <- norm_values(data, 2:4, control_mean_min)
+      norm_min  <- norm_values(data, 2:4, control_mean_min)
       norm_plus <- norm_values(data, 5:7, control_mean_plus)
       ov <- mean((control_mean_plus / control_mean_min) * 100, na.rm = TRUE)
       
@@ -92,33 +95,21 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
         fourpl <- function(x, min, max, EC50, Hillslope) {
           min + (max - min) / (1 + (x / EC50)^(-Hillslope))
         }
-        
         start_vals <- estimate_start(conc, norm_plus$mean)
-        
         lower_bounds <- c(min = -10, max = -10,
                           logEC50 = log10(min(conc) / 10), Hillslope = -5)
         upper_bounds <- c(min = 200, max = 300,
                           logEC50 = log10(max(conc) * 5), Hillslope = 5)
-        
         obj_func <- function(par) {
-          if (any(!is.finite(par))) {
-            return(1e10)
-          }
-          
+          if (any(!is.finite(par))) return(1e10)
           y_pred <- fourpl(conc, par[1], par[2], 10^par[3], par[4])
-          
-          if (any(!is.finite(y_pred))) {
-            return(1e10)
-          }
-          
+          if (any(!is.finite(y_pred))) return(1e10)
           sum((norm_plus$mean - y_pred)^2)
         }
-        
         grid <- expand.grid(
           logEC50 = seq(lower_bounds[["logEC50"]], upper_bounds[["logEC50"]], length.out = 15),
           Hillslope = c(-0.5, -1, -2, -3)
         )
-        
         fit <- NULL
         for (k in seq_len(nrow(grid))) {
           st <- c(min = unname(start_vals[["min"]]),
@@ -129,21 +120,16 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
                       lower = lower_bounds, upper = upper_bounds)
           if (is.null(fit) || f$objective < fit$objective) fit <- f
         }
-        
         if (!is.finite(fit$objective) || any(!is.finite(fit$par))) {
           stop("Optimization failed due to NaNs or Infs in the parameters.")
         }
-        
         at_bound <- abs(fit$par - lower_bounds) < 1e-6 |
           abs(fit$par - upper_bounds) < 1e-6
-        
         hessian <- numDeriv::hessian(func = obj_func, x = fit$par)
-        
         n_obs  <- length(norm_plus$mean)
         n_par  <- length(fit$par)
         sigma2 <- fit$objective / (n_obs - n_par)
         cov_matrix <- tryCatch(2 * sigma2 * solve(hessian), error = function(e) NULL)
-        
         if (is.null(cov_matrix)) {
           SE <- rep(NA_real_, n_par)
         } else {
@@ -151,19 +137,16 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
           SE <- ifelse(d > 0, sqrt(d), NA_real_)
         }
         SE[at_bound] <- NA_real_
-        
         par_out <- fit$par
         par_out[3] <- 10^fit$par[3]
         SE[3] <- if (is.na(SE[3])) NA_real_ else SE[3] * log(10) * par_out[3]
         names(par_out)[3] <- "EC50"
         fit$par <- par_out
-        
         return(list(fit = fit, SE = SE, at_bound = at_bound,
                     convergence = fit$convergence, message = fit$message))
       }
       
       fit_mean <- fit_4pl(conc, norm_plus)
-      
       params_mean <- fit_mean$fit$par
       SE_params <- fit_mean$SE
       
@@ -172,39 +155,30 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
       y_padding <- 0.15 * (y_max - y_min)
       
       par(bty = "l", mar = c(5, 5, 4, 4) + 0.1, lwd = 2, tck = -0.02, cex.axis = 1)
-      
-      plot(conc, norm_plus$mean, log = "x", type = "n", 
+      plot(conc, norm_plus$mean, log = "x", type = "n",
            xlab = x_title, ylab = y_title,
            ylim = c(y_min - y_padding, y_max + 1.2 * y_padding),
            main = main_title, cex.lab = 1, cex.main = 1, las = 1)
-      
-      
       if (any(norm_min$std > 0, na.rm = TRUE)) {
-        arrows(conc, norm_min$mean - norm_min$std, conc, norm_min$mean + norm_min$std, 
+        arrows(conc, norm_min$mean - norm_min$std, conc, norm_min$mean + norm_min$std,
                length = 0.1, angle = 90, code = 3, col = "gray67")
       }
       if (any(norm_plus$std > 0, na.rm = TRUE)) {
-        arrows(conc, norm_plus$mean - norm_plus$std, conc, norm_plus$mean + norm_plus$std, length = 0.1, angle = 90, code = 3)
+        arrows(conc, norm_plus$mean - norm_plus$std, conc, norm_plus$mean + norm_plus$std,
+               length = 0.1, angle = 90, code = 3)
       }
-      
       xval <- seq(min(conc), max(conc), length.out = 1000)
       yval <- params_mean[1] + (params_mean[2] - params_mean[1]) / (1 + (xval / params_mean[3])^(-params_mean[4]))
-      lines(xval, yval, lwd = 3) 
-      
+      lines(xval, yval, lwd = 3)
       points(conc, norm_min$mean, pch = 18, col = "gray67", cex = 1.3)
       points(conc, norm_plus$mean, pch = 21, col = "black", bg = "white", cex = 1.6)
-      
-      legend_y <- max(norm_min$mean, na.rm = TRUE) + 1.5 * y_padding 
-      legend("topright", 
-             legend = c("-OV", "+OV"), 
-             pch = c(18, 21),  
-             col = c("gray67", "black"), 
-             pt.bg = c(NA, "white"),  
-             bty = "n", 
-             cex = 1, 
-             xpd = TRUE, 
-             y.intersp = 0.8, 
-             text.col = "black")
+      legend_y <- max(norm_min$mean, na.rm = TRUE) + 1.5 * y_padding
+      legend("topright",
+             legend = c("-OV", "+OV"),
+             pch = c(18, 21),
+             col = c("gray67", "black"),
+             pt.bg = c(NA, "white"),
+             bty = "n", cex = 1, xpd = TRUE, y.intersp = 0.8, text.col = "black")
       
       n2.sum <- data.frame(
         "Parameters" = c("EC50", "max", "min", "Hillslope"),
@@ -212,7 +186,6 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
         "SE" = signif(SE_params[c(3, 2, 1, 4)], 4),
         stringsAsFactors = FALSE
       )
-      
       
       cat(sprintf("Summary for: %s\n", main_title))
       cat(sprintf("stock: %s, dose: %s, well.vol: %s \n", stock_value, dose_value, well.vol))
@@ -224,12 +197,11 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
                       n2.sum$Parameters[row], n2.sum$Mean[row], n2.sum$SE[row]))
         }
       }
-      
-      
       print_summary(n2.sum, paste(rep(" ", 10), collapse = ""))
       cat(sprintf("%s%s\n", paste(rep(" ", 10), collapse = ""), strrep("-", 9 + 9 + 9)))
       cat(sprintf("OV%%: %.2f \n", round(ov, 2)))
       
+      conv_ok <- is.null(fit_mean$convergence) || fit_mean$convergence == 0   # >>> ADDED
       if (!is.null(fit_mean$convergence) && fit_mean$convergence != 0) {
         cat(sprintf("* fit did not converge: %s\n", fit_mean$message))
       }
@@ -238,10 +210,8 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
                     paste(names(which(fit_mean$at_bound)), collapse = ", ")))
       }
       
-      
-      cv_min <- norm_min$std / norm_min$mean * 100
+      cv_min  <- norm_min$std  / norm_min$mean  * 100
       cv_plus <- norm_plus$std / norm_plus$mean * 100
-      
       if (any(cv_min > 20, na.rm = TRUE) || any(cv_plus > 20, na.rm = TRUE)) {
         if (any(cv_min > 20, na.rm = TRUE)) {
           high_cv_rows <- which(cv_min > 20)
@@ -252,14 +222,40 @@ n2dr <- function(datalist, stock, dose, well.vol = 230, tissue = "liquid",
           cat(sprintf("* CV above 20%% | Sample %s (+OV)\n", paste(high_cv_rows, collapse = ", ")))
         }
       }
+      matrix_effect <- FALSE                                   # >>> ADDED
       for (j in seq_along(norm_min$mean)) {
         other_means <- norm_min$mean[-j]
         if (all(norm_min$mean[j] < 0.3 * other_means)) {
           cat("* Matrix effect detected\n")
-          
+          matrix_effect <- TRUE                                # >>> ADDED
         }
       }
       
+      # >>> ADDED: one tidy row of results for this plate
+      results_all[[i]] <- data.frame(
+        plate         = main_title,
+        stock         = stock_value,
+        dose          = dose_value,
+        well.vol      = well.vol,
+        EC50          = unname(params_mean[3]),
+        EC50_SE       = unname(SE_params[3]),
+        max           = unname(params_mean[2]),
+        max_SE        = unname(SE_params[2]),
+        min           = unname(params_mean[1]),
+        min_SE        = unname(SE_params[1]),
+        Hillslope     = unname(params_mean[4]),
+        Hillslope_SE  = unname(SE_params[4]),
+        OV_pct        = unname(ov),
+        converged     = conv_ok,
+        at_bound      = any(fit_mean$at_bound),
+        matrix_effect = matrix_effect,
+        stringsAsFactors = FALSE
+      )
     }
-  }) 
+  })
+  
+  # >>> ADDED: bind all plates and return invisibly (console output unchanged)
+  results_df <- do.call(rbind, results_all)
+  rownames(results_df) <- NULL
+  invisible(results_df)
 }
